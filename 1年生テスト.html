@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoL Rank Performance Report</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #091428; /* LoL Dark Blue */
+            background-image: radial-gradient(circle at 50% 0%, #1e282d 0%, #091428 70%);
+            color: #f0e6d2; /* LoL Gold Textish */
+            min-height: 100vh;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #091428;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c8aa6e;
+            border-radius: 4px;
+        }
+
+        /* Hextech Borders */
+        .hex-border {
+            border: 1px solid #c8aa6e;
+            box-shadow: 0 0 10px rgba(200, 170, 110, 0.1);
+            position: relative;
+        }
+        .hex-border::before, .hex-border::after {
+            content: '';
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #c8aa6e;
+            transition: all 0.3s ease;
+        }
+        .hex-border::before { top: -1px; left: -1px; }
+        .hex-border::after { bottom: -1px; right: -1px; }
+
+        .hex-input {
+            background: rgba(1, 10, 19, 0.8);
+            border: 1px solid #463714;
+            color: #f0e6d2;
+            transition: all 0.3s;
+        }
+        .hex-input:focus {
+            border-color: #c8aa6e;
+            box-shadow: 0 0 15px rgba(200, 170, 110, 0.3);
+            outline: none;
+        }
+
+        /* Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+            margin: 10px 0;
+        }
+        
+        /* The Thumb (Handle) */
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #f0e6d2;
+            border: 2px solid #c8aa6e;
+            cursor: pointer;
+            margin-top: -7px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            transition: transform 0.1s;
+        }
+        input[type=range]:active::-webkit-slider-thumb {
+            transform: scale(1.2);
+            background: #c8aa6e;
+        }
+
+        /* The Track */
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: linear-gradient(90deg, #ef4444 0%, #eab308 50%, #22c55e 100%);
+            border-radius: 4px;
+            border: 1px solid #1e282d;
+        }
+
+        .gold-text { color: #c8aa6e; }
+        .blue-text { color: #0ac8b9; }
+        
+        /* Smooth fade in */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Capture Area Specifics */
+        #capture-area {
+            background-color: #091428;
+            background-image: radial-gradient(circle at 50% 0%, #1e282d 0%, #091428 70%);
+            padding: 2rem; /* Add padding for image export aesthetics */
+        }
+        @media (max-width: 768px) {
+            #capture-area {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body class="text-sm md:text-base">
+
+    <!-- Main Layout Container -->
+    <div class="max-w-[1600px] mx-auto flex flex-col xl:flex-row gap-6 items-start p-4 md:p-8">
+
+        <!-- LEFT COLUMN: Input & Capture Area (Main Content) -->
+        <div class="flex-1 w-full min-w-0">
+            
+            <!-- Wrapper for Image Capture -->
+            <div id="capture-area" class="w-full rounded-md shadow-2xl mb-8">
+                
+                <!-- Header Section -->
+                <header class="max-w-4xl mx-auto mb-8 text-center fade-in">
+                    <h1 class="text-3xl md:text-4xl font-bold uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-[#c8aa6e] to-[#785a28] mb-2">
+                        Summoner's Report
+                    </h1>
+                    <p class="text-gray-400">ランク戦パフォーマンス分析・コーチングシート</p>
+                </header>
+
+                <main class="space-y-6">
+
+                    <!-- 1. Basic Info -->
+                    <section class="hex-border bg-[#010a13]/90 p-6 rounded-sm fade-in">
+                        <h2 class="text-xl font-bold gold-text mb-4 border-b border-[#c8aa6e]/30 pb-2">
+                            <i class="fas fa-id-card mr-2"></i> 1. 基本情報
+                        </h2>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <!-- Report Date -->
+                            <div>
+                                <label class="block text-gray-400 text-xs uppercase mb-1">報告日</label>
+                                <input type="date" id="reportDate" class="hex-input w-full p-2 rounded save-target" oninput="updatePreview()">
+                            </div>
+                            <!-- Main Champ -->
+                            <div>
+                                <label class="block text-gray-400 text-xs uppercase mb-1">使用チャンピオン</label>
+                                <input type="text" id="champions" placeholder="例: Ahri, Viego, Kai'sa" class="hex-input w-full p-2 rounded save-target" oninput="updatePreview()">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                            <!-- Rank -->
+                            <div class="bg-[#091428] p-4 border border-[#1e2328] relative overflow-hidden group">
+                                <label class="block text-[#0ac8b9] text-xs font-bold uppercase mb-2">現在のランク / LP</label>
+                                <div class="flex gap-2">
+                                    <!-- Tier -->
+                                    <select id="currentRank" class="hex-input flex-[3] w-0 p-2 rounded font-bold text-xs md:text-sm save-target" onchange="handleRankChange(); updatePreview();">
+                                        <option value="Unranked">Unranked</option>
+                                        <option value="Iron">Iron</option>
+                                        <option value="Bronze">Bronze</option>
+                                        <option value="Silver">Silver</option>
+                                        <option value="Gold" selected>Gold</option>
+                                        <option value="Platinum">Platinum</option>
+                                        <option value="Emerald">Emerald</option>
+                                        <option value="Diamond">Diamond</option>
+                                        <option value="Master">Master</option>
+                                        <option value="Grandmaster">GM</option>
+                                        <option value="Challenger">Challenger</option>
+                                    </select>
+                                    <!-- Division (1-4) -->
+                                    <select id="currentDivision" class="hex-input flex-[2] w-0 min-w-[70px] p-2 rounded font-bold text-center text-xs md:text-sm save-target" onchange="updatePreview()">
+                                        <option value="I">I</option>
+                                        <option value="II">II</option>
+                                        <option value="III">III</option>
+                                        <option value="IV" selected>IV</option>
+                                    </select>
+                                    <!-- LP -->
+                                    <input type="number" id="currentLP" placeholder="LP" class="hex-input flex-[3] w-0 p-2 rounded text-right text-xs md:text-sm save-target" oninput="updatePreview()">
+                                </div>
+                            </div>
+
+                            <!-- Match Result -->
+                            <div class="md:col-span-2 bg-[#091428] p-4 border border-[#1e2328]">
+                                <div class="flex justify-between items-center mb-2">
+                                    <label class="block text-[#0ac8b9] text-xs font-bold uppercase">今回の勝敗</label>
+                                </div>
+                                <div class="flex gap-4">
+                                    <label class="flex-1 cursor-pointer group relative">
+                                        <input type="radio" name="matchResult" value="WIN" class="peer hidden save-target-radio" checked onchange="updatePreview()">
+                                        <div class="hex-input h-10 md:h-12 flex items-center justify-center border-2 border-transparent peer-checked:border-blue-500 peer-checked:bg-blue-900/40 peer-checked:text-blue-400 peer-checked:shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-all rounded font-bold text-lg text-gray-600 hover:bg-[#0c1c36]">
+                                            WIN
+                                        </div>
+                                    </label>
+                                    <label class="flex-1 cursor-pointer group relative">
+                                        <input type="radio" name="matchResult" value="LOSS" class="peer hidden save-target-radio" onchange="updatePreview()">
+                                        <div class="hex-input h-10 md:h-12 flex items-center justify-center border-2 border-transparent peer-checked:border-red-500 peer-checked:bg-red-900/40 peer-checked:text-red-400 peer-checked:shadow-[0_0_15px_rgba(239,68,68,0.5)] transition-all rounded font-bold text-lg text-gray-600 hover:bg-[#0c1c36]">
+                                            LOSS
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 2. Stats Reflection -->
+                    <section class="hex-border bg-[#010a13]/90 p-6 rounded-sm fade-in">
+                        <h2 class="text-xl font-bold gold-text mb-4 border-b border-[#c8aa6e]/30 pb-2">
+                            <i class="fas fa-chart-line mr-2"></i> 2. スタッツ振り返り
+                        </h2>
+                        <p class="text-xs text-gray-400 mb-4">平均値や内容を入力し、自己評価（1=Bad, 5=Perfect）をスライダーで設定してください。</p>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                            <!-- Stat Card: CS -->
+                            <div class="bg-[#091428] p-3 border border-[#3c3c41] rounded hover:border-[#c8aa6e] transition-colors">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-gray-300 font-bold"><i class="fas fa-coins text-yellow-500 mr-1"></i> CS/分</span>
+                                    <span class="text-xs text-[#c8aa6e] font-bold" id="score_cs_val">3</span>
+                                </div>
+                                <input type="text" id="stat_cs_content" placeholder="例: 7.5 / レーニング〇" class="hex-input w-full text-xs p-2 mb-2 rounded save-target" oninput="updatePreview()">
+                                <input type="range" id="stat_cs_score" min="1" max="5" value="3" class="w-full save-target" oninput="updateRangeVal('stat_cs_score', 'score_cs_val'); updatePreview()">
+                            </div>
+
+                            <!-- Stat Card: KDA -->
+                            <div class="bg-[#091428] p-3 border border-[#3c3c41] rounded hover:border-[#c8aa6e] transition-colors">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-gray-300 font-bold"><i class="fas fa-skull text-red-500 mr-1"></i> KDA</span>
+                                    <span class="text-xs text-[#c8aa6e] font-bold" id="score_kda_val">3</span>
+                                </div>
+                                <input type="text" id="stat_kda_content" placeholder="例: 3.4 / デス少なめ" class="hex-input w-full text-xs p-2 mb-2 rounded save-target" oninput="updatePreview()">
+                                <input type="range" id="stat_kda_score" min="1" max="5" value="3" class="w-full save-target" oninput="updateRangeVal('stat_kda_score', 'score_kda_val'); updatePreview()">
+                            </div>
+
+                            <!-- Stat Card: Vision -->
+                            <div class="bg-[#091428] p-3 border border-[#3c3c41] rounded hover:border-[#c8aa6e] transition-colors">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-gray-300 font-bold"><i class="fas fa-eye text-green-500 mr-1"></i> 視界スコア</span>
+                                    <span class="text-xs text-[#c8aa6e] font-bold" id="score_vision_val">3</span>
+                                </div>
+                                <input type="text" id="stat_vision_content" placeholder="例: 1.2 / ピンク購入不足" class="hex-input w-full text-xs p-2 mb-2 rounded save-target" oninput="updatePreview()">
+                                <input type="range" id="stat_vision_score" min="1" max="5" value="3" class="w-full save-target" oninput="updateRangeVal('stat_vision_score', 'score_vision_val'); updatePreview()">
+                            </div>
+
+                            <!-- Stat Card: KP -->
+                            <div class="bg-[#091428] p-3 border border-[#3c3c41] rounded hover:border-[#c8aa6e] transition-colors">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-gray-300 font-bold"><i class="fas fa-fist-raised text-blue-500 mr-1"></i> キル関与率</span>
+                                    <span class="text-xs text-[#c8aa6e] font-bold" id="score_kp_val">3</span>
+                                </div>
+                                <input type="text" id="stat_kp_content" placeholder="例: 55% / 寄りは早かった" class="hex-input w-full text-xs p-2 mb-2 rounded save-target" oninput="updatePreview()">
+                                <input type="range" id="stat_kp_score" min="1" max="5" value="3" class="w-full save-target" oninput="updateRangeVal('stat_kp_score', 'score_kp_val'); updatePreview()">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-gray-400 text-xs font-bold uppercase mb-2">【コーチへのメモ】 数値目標未達の理由など</label>
+                            <textarea id="stat_memo" rows="2" class="hex-input w-full p-3 rounded text-sm save-target" placeholder="CSが低かったのは対面がCaitlyn/Luxでタワー下に押し付けられ続けたため...等" oninput="updatePreview()"></textarea>
+                        </div>
+                    </section>
+
+                    <!-- 3. Goals & 4. Match Deep Dive -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        
+                        <!-- 3. Goals -->
+                        <section class="hex-border bg-[#010a13]/90 p-6 rounded-sm fade-in h-full">
+                            <h2 class="text-xl font-bold gold-text mb-4 border-b border-[#c8aa6e]/30 pb-2">
+                                <i class="fas fa-bullseye mr-2"></i> 3. 目標と達成度
+                            </h2>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-[#0ac8b9] text-xs font-bold uppercase mb-1">目標</label>
+                                    <input type="text" id="goal_setting" class="hex-input w-full p-2 rounded save-target" placeholder="例：サイドレーンのプッシュ意識" oninput="updatePreview()">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-400 text-xs font-bold uppercase mb-1">達成度・手応え</label>
+                                    <textarea id="goal_reflection" rows="2" class="hex-input w-full p-2 rounded save-target" placeholder="意識はできたがマップが見れていなかった..." oninput="updatePreview()"></textarea>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-green-500 text-xs font-bold uppercase mb-1"><i class="fas fa-check"></i> できたこと</label>
+                                        <textarea id="goal_good" rows="2" class="hex-input w-full p-2 rounded bg-green-900/10 border-green-900/30 save-target" oninput="updatePreview()"></textarea>
+                                    </div>
+                                    <div>
+                                        <label class="block text-red-500 text-xs font-bold uppercase mb-1"><i class="fas fa-times"></i> できなかったこと</label>
+                                        <textarea id="goal_bad" rows="2" class="hex-input w-full p-2 rounded bg-red-900/10 border-red-900/30 save-target" oninput="updatePreview()"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- 4. Match Deep Dive -->
+                        <section class="hex-border bg-[#010a13]/90 p-6 rounded-sm fade-in h-full">
+                            <h2 class="text-xl font-bold gold-text mb-4 border-b border-[#c8aa6e]/30 pb-2">
+                                <i class="fas fa-video mr-2"></i> 4. 試合内容の深掘り
+                            </h2>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-gray-400 text-xs font-bold uppercase mb-1">試合時間</label>
+                                    <input type="text" id="match_url" class="hex-input w-full p-2 rounded font-mono text-xs save-target" placeholder="例: 15:30ごろ" oninput="updatePreview()">
+                                </div>
+                                <div>
+                                    <label class="block text-[#0ac8b9] text-xs font-bold uppercase mb-1">良かったプレイ (会心)</label>
+                                    <textarea id="match_good" rows="3" class="hex-input w-full p-2 rounded save-target" placeholder="具体的に：〇分ごろの〇〇の判断など" oninput="updatePreview()"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-yellow-600 text-xs font-bold uppercase mb-1">改善すべきプレイ (反省)</label>
+                                    <textarea id="match_bad" rows="3" class="hex-input w-full p-2 rounded save-target" placeholder="具体的に：あのデスは防げたか？別の選択肢は..." oninput="updatePreview()"></textarea>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- 5. Mental & 6. Next Steps -->
+                    <section class="hex-border bg-[#010a13]/90 p-6 rounded-sm fade-in">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <!-- 5. Mental -->
+                            <div>
+                                <h2 class="text-xl font-bold gold-text mb-4 border-b border-[#c8aa6e]/30 pb-2">
+                                    <i class="fas fa-brain mr-2"></i> 5. メンタル・環境
+                                </h2>
+                                <div class="space-y-4">
+                                    <!-- Mental Item 1 -->
+                                    <div class="bg-[#091428] p-3 border border-[#3c3c41] rounded hover:border-[#c8aa6e] transition-colors">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <label class="text-gray-400 text-xs font-bold uppercase">集中力</label>
+                                            <span class="text-xs text-[#c8aa6e] font-bold" id="score_focus_val">3</span>
+                                        </div>
+                                        <input type="text" id="mental_focus" class="hex-input w-full text-xs p-2 mb-3 rounded save-target" placeholder="3試合目以降低下..." oninput="updatePreview()">
+                                        <div class="flex items-center gap-2">
+                                            <i class="fas fa-frown text-red-500 text-xs"></i>
+                                            <input type="range" id="mental_focus_score" min="1" max="5" value="3" class="flex-1 save-target" oninput="updateRangeVal('mental_focus_score', 'score_focus_val'); updatePreview()">
+                                            <i class="fas fa-smile text-green-500 text-xs"></i>
+                                        </div>
+                                        <div class="flex justify-between text-[10px] text-gray-500 px-1 mt-[-5px]">
+                                            <span>Bad</span>
+                                            <span>Good</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Mental Item 2 -->
+                                    <div class="bg-[#091428] p-3 border border-[#3c3c41] rounded hover:border-[#c8aa6e] transition-colors">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <label class="text-gray-400 text-xs font-bold uppercase">メンタル管理</label>
+                                            <span class="text-xs text-[#c8aa6e] font-bold" id="score_tilt_val">3</span>
+                                        </div>
+                                        <input type="text" id="mental_tilt" class="hex-input w-full text-xs p-2 mb-3 rounded save-target" placeholder="連敗しても冷静だった..." oninput="updatePreview()">
+                                        <div class="flex items-center gap-2">
+                                            <i class="fas fa-bolt text-red-500 text-xs"></i>
+                                            <input type="range" id="mental_tilt_score" min="1" max="5" value="3" class="flex-1 save-target" oninput="updateRangeVal('mental_tilt_score', 'score_tilt_val'); updatePreview()">
+                                            <i class="fas fa-dove text-green-500 text-xs"></i>
+                                        </div>
+                                        <div class="flex justify-between text-[10px] text-gray-500 px-1 mt-[-5px]">
+                                            <span>Tilted</span>
+                                            <span>Calm</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Mental Item 3 -->
+                                    <div class="bg-[#091428] p-3 border border-[#3c3c41] rounded hover:border-[#c8aa6e] transition-colors">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <label class="text-gray-400 text-xs font-bold uppercase">環境</label>
+                                            <span class="text-xs text-[#c8aa6e] font-bold" id="score_env_val">3</span>
+                                        </div>
+                                        <input type="text" id="mental_env" class="hex-input w-full text-xs p-2 mb-3 rounded save-target" placeholder="睡眠不足、マウス変更..." oninput="updatePreview()">
+                                        <div class="flex items-center gap-2">
+                                            <i class="fas fa-thumbs-down text-red-500 text-xs"></i>
+                                            <input type="range" id="mental_env_score" min="1" max="5" value="3" class="flex-1 save-target" oninput="updateRangeVal('mental_env_score', 'score_env_val'); updatePreview()">
+                                            <i class="fas fa-thumbs-up text-green-500 text-xs"></i>
+                                        </div>
+                                        <div class="flex justify-between text-[10px] text-gray-500 px-1 mt-[-5px]">
+                                            <span>Poor</span>
+                                            <span>Great</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 6. Next Steps -->
+                            <div>
+                                <h2 class="text-xl font-bold gold-text mb-4 border-b border-[#c8aa6e]/30 pb-2">
+                                    <i class="fas fa-forward mr-2"></i> 6. 次回への課題
+                                </h2>
+                                <div class="space-y-3">
+                                    <div>
+                                        <label class="block text-[#0ac8b9] text-xs font-bold uppercase mb-1">自分で見つけた次の課題</label>
+                                        <input type="text" id="next_task" class="hex-input w-full p-2 rounded save-target" placeholder="CS精度の向上" oninput="updatePreview()">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[#c8aa6e] text-xs font-bold uppercase mb-1">コーチに聞きたいこと</label>
+                                        <textarea id="next_question" rows="2" class="hex-input w-full p-2 rounded save-target" placeholder="有利対面でのレーンフリーズの判断基準について" oninput="updatePreview()"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </main>
+            </div> <!-- End of Capture Area -->
+
+            <!-- Action Area (Image & Print) -->
+            <div class="flex flex-col md:flex-row gap-4 justify-center items-center pb-12">
+                <!-- Image Export Button -->
+                <button onclick="downloadAsImage()" class="w-full md:w-auto group relative px-8 py-4 bg-gradient-to-r from-blue-900 to-[#091428] border border-[#0ac8b9] text-[#0ac8b9] font-bold uppercase tracking-wider hover:shadow-[0_0_20px_rgba(10,200,185,0.4)] transition-all duration-300 flex items-center justify-center">
+                    <span class="absolute inset-0 w-full h-full border border-[#0ac8b9] opacity-30 group-hover:opacity-100 transition-opacity"></span>
+                    <i class="fas fa-camera mr-2"></i> 画像として保存
+                </button>
+                
+                <!-- PDF/Print Button -->
+                <button onclick="window.print()" class="w-full md:w-auto px-6 py-4 bg-gray-800 text-gray-400 font-bold uppercase hover:bg-gray-700 transition-colors rounded flex items-center justify-center">
+                    <i class="fas fa-print mr-2"></i> 印刷 / PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Realtime Preview Area -->
+        <div class="w-full xl:w-[450px] xl:sticky xl:top-8 flex-shrink-0">
+            <div class="hex-border bg-[#010a13]/95 p-4 rounded-sm shadow-xl">
+                <div class="flex justify-between items-center mb-4 border-b border-[#c8aa6e]/30 pb-2">
+                    <h2 class="text-lg font-bold gold-text">
+                        <i class="fas fa-file-alt mr-2"></i> テキストプレビュー
+                    </h2>
+                    <span class="text-xs text-gray-400 animate-pulse">Live Updating...</span>
+                </div>
+                
+                <!-- Copy Button Inside Preview -->
+                <button onclick="copyToClipboard()" class="w-full mb-4 px-4 py-2 bg-[#091428] border border-[#c8aa6e] text-[#c8aa6e] font-bold text-sm uppercase hover:bg-[#c8aa6e] hover:text-[#091428] transition-all duration-300 shadow-[0_0_10px_rgba(200,170,110,0.2)] flex items-center justify-center">
+                    <i class="fas fa-copy mr-2"></i> この内容をコピー
+                </button>
+
+                <div class="relative">
+                    <textarea id="livePreview" readonly class="w-full h-[600px] bg-[#091428] border border-[#3c3c41] rounded p-3 text-xs md:text-sm font-mono text-gray-300 focus:outline-none focus:border-[#c8aa6e] resize-none leading-relaxed" spellcheck="false"></textarea>
+                    <!-- Decorative Corner -->
+                    <div class="absolute bottom-2 right-2 text-[#c8aa6e]/20 text-2xl pointer-events-none">
+                        <i class="fas fa-pen-nib"></i>
+                    </div>
+                </div>
+                
+                <p class="text-xs text-gray-500 mt-2 text-center">
+                    ※ここは自動更新されます。<br>
+                    直接編集は左側のフォームで行ってください。
+                </p>
+            </div>
+        </div>
+
+    </div> <!-- End of Main Layout -->
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-[#c8aa6e] text-[#091428] px-6 py-3 rounded shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 font-bold border border-white/20 z-50">
+        <span id="toast-message"><i class="fas fa-check-circle mr-2"></i> クリップボードにコピーしました！</span>
+    </div>
+
+    <script>
+        const STORAGE_KEY_PREFIX = 'lol_report_v1_';
+
+        // --- 1. Auto-Save & Live Preview ---
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSavedData();
+            // Init date if empty
+            if (!document.getElementById('reportDate').value) {
+                document.getElementById('reportDate').valueAsDate = new Date();
+            }
+            handleRankChange();
+            updatePreview(); // Initial Preview Render
+        });
+
+        // Function to load data
+        function loadSavedData() {
+            const inputs = document.querySelectorAll('.save-target');
+            inputs.forEach(input => {
+                const savedValue = localStorage.getItem(STORAGE_KEY_PREFIX + input.id);
+                if (savedValue !== null) {
+                    input.value = savedValue;
+                    // Trigger range updates
+                    if(input.type === 'range') {
+                        const displayId = input.getAttribute('oninput').match(/'([^']+)'\)$/)?.[1];
+                        if (displayId) {
+                            // Find displayId in the same logical scope or by ID
+                            const dispEl = document.getElementById(displayId);
+                            if(dispEl) dispEl.innerText = savedValue;
+                        }
+                    }
+                }
+                
+                // Save listener + Preview Updater
+                input.addEventListener('input', () => {
+                    localStorage.setItem(STORAGE_KEY_PREFIX + input.id, input.value);
+                    updatePreview();
+                });
+                input.addEventListener('change', () => {
+                    localStorage.setItem(STORAGE_KEY_PREFIX + input.id, input.value);
+                    updatePreview();
+                });
+            });
+
+            // Radio Buttons
+            const radios = document.querySelectorAll('.save-target-radio');
+            const savedRadio = localStorage.getItem(STORAGE_KEY_PREFIX + 'matchResult');
+            if (savedRadio) {
+                radios.forEach(radio => {
+                    if (radio.value === savedRadio) radio.checked = true;
+                });
+            }
+            radios.forEach(radio => {
+                radio.addEventListener('change', () => {
+                    if(radio.checked) {
+                        localStorage.setItem(STORAGE_KEY_PREFIX + 'matchResult', radio.value);
+                        updatePreview();
+                    }
+                });
+            });
+        }
+
+        // --- 2. Live Preview Logic ---
+        function updatePreview() {
+            const text = generateReportText();
+            document.getElementById('livePreview').value = text;
+        }
+
+        // --- 3. Image Export Feature (html2canvas) ---
+        function downloadAsImage() {
+            const target = document.getElementById('capture-area');
+            const btn = document.querySelector('button[onclick="downloadAsImage()"]');
+            
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> 生成中...';
+            btn.disabled = true;
+
+            html2canvas(target, {
+                scale: 2,
+                backgroundColor: '#091428',
+                useCORS: true,
+                logging: false,
+                onclone: (clonedDoc) => {
+                    const clone = clonedDoc.getElementById('capture-area');
+
+                    // Animation Stop
+                    const animated = clone.querySelectorAll('.fade-in');
+                    animated.forEach(el => {
+                        el.style.animation = 'none';
+                        el.style.opacity = '1';
+                        el.style.transform = 'none';
+                    });
+
+                    // Helper for styles
+                    const copyStyles = (source, targetDiv, isTextarea = false) => {
+                        const computed = window.getComputedStyle(source);
+                        targetDiv.style.padding = computed.padding;
+                        targetDiv.style.border = computed.border;
+                        targetDiv.style.borderRadius = computed.borderRadius;
+                        targetDiv.style.fontSize = computed.fontSize;
+                        targetDiv.style.fontFamily = computed.fontFamily;
+                        targetDiv.style.fontWeight = computed.fontWeight;
+                        targetDiv.style.color = computed.color;
+                        targetDiv.style.backgroundColor = computed.backgroundColor;
+                        targetDiv.style.boxSizing = "border-box";
+                        
+                        if (!isTextarea) {
+                            targetDiv.style.height = computed.height;
+                            targetDiv.style.display = 'flex';
+                            targetDiv.style.alignItems = 'center';
+                            const align = computed.textAlign;
+                            if (align === 'right' || align === 'end') targetDiv.style.justifyContent = 'flex-end';
+                            else if (align === 'center') targetDiv.style.justifyContent = 'center';
+                            else targetDiv.style.justifyContent = 'flex-start';
+                        } else {
+                            targetDiv.style.lineHeight = computed.lineHeight;
+                            targetDiv.style.whiteSpace = 'pre-wrap';
+                            targetDiv.style.height = 'auto';
+                            targetDiv.style.minHeight = computed.height;
+                        }
+                    };
+
+                    // Replace Textareas
+                    const textareas = clone.querySelectorAll('textarea');
+                    const originalTextareas = target.querySelectorAll('textarea');
+                    textareas.forEach((ta, index) => {
+                        const div = clonedDoc.createElement('div');
+                        div.innerHTML = ta.value ? ta.value.replace(/\n/g, '<br>') : '&nbsp;';
+                        div.className = ta.className;
+                        if (originalTextareas[index]) copyStyles(originalTextareas[index], div, true);
+                        ta.parentNode.replaceChild(div, ta);
+                    });
+
+                    // Replace Inputs
+                    const inputs = clone.querySelectorAll('input[type="text"], input[type="date"], input[type="number"]');
+                    const originalInputs = target.querySelectorAll('input[type="text"], input[type="date"], input[type="number"]');
+                    inputs.forEach((input, index) => {
+                        const div = clonedDoc.createElement('div');
+                        div.textContent = input.value;
+                        div.className = input.className;
+                        if (originalInputs[index]) copyStyles(originalInputs[index], div, false);
+                        input.parentNode.replaceChild(div, input);
+                    });
+                    
+                    // Replace Selects
+                    const selects = clone.querySelectorAll('select');
+                    const originalSelects = target.querySelectorAll('select');
+                    selects.forEach((sel, index) => {
+                        const div = clonedDoc.createElement('div');
+                        div.textContent = sel.options[sel.selectedIndex].text;
+                        div.className = sel.className;
+                        if (originalSelects[index]) copyStyles(originalSelects[index], div, false);
+                        div.style.appearance = 'none';
+                        sel.parentNode.replaceChild(div, sel);
+                    });
+
+                    // Fix Radio Styles
+                    const radios = clone.querySelectorAll('input[name="matchResult"]');
+                    radios.forEach(radio => {
+                        if (radio.checked) {
+                            const visualDiv = radio.nextElementSibling;
+                            if (visualDiv) {
+                                if (radio.value === 'WIN') {
+                                    visualDiv.style.borderColor = '#3b82f6';
+                                    visualDiv.style.backgroundColor = 'rgba(30, 58, 138, 0.4)';
+                                    visualDiv.style.color = '#60a5fa';
+                                    visualDiv.style.boxShadow = '0 0 15px rgba(59,130,246,0.5)';
+                                } else {
+                                    visualDiv.style.borderColor = '#ef4444';
+                                    visualDiv.style.backgroundColor = 'rgba(127, 29, 29, 0.4)';
+                                    visualDiv.style.color = '#f87171';
+                                    visualDiv.style.boxShadow = '0 0 15px rgba(239,68,68,0.5)';
+                                }
+                            }
+                        }
+                    });
+                }
+            }).then(canvas => {
+                const link = document.createElement('a');
+                const date = document.getElementById('reportDate').value || 'report';
+                link.download = `LoL_Report_${date}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                showToast('画像として保存しました！');
+            }).catch(err => {
+                console.error(err);
+                alert('画像の生成に失敗しました。');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+        }
+
+
+        // --- Helpers ---
+
+        function handleRankChange() {
+            const rank = document.getElementById('currentRank').value;
+            const divSelect = document.getElementById('currentDivision');
+            const highTiers = ['Master', 'Grandmaster', 'Challenger', 'Unranked'];
+            
+            if (highTiers.includes(rank)) {
+                divSelect.style.display = 'none';
+            } else {
+                divSelect.style.display = 'block';
+            }
+        }
+
+        function updateRangeVal(sliderId, displayId) {
+            const val = document.getElementById(sliderId).value;
+            document.getElementById(displayId).innerText = val;
+        }
+
+        function getMatchResult() {
+            const radios = document.getElementsByName('matchResult');
+            for (const radio of radios) {
+                if (radio.checked) return radio.value;
+            }
+            return "WIN";
+        }
+
+        function getVal(id) {
+            const element = document.getElementById(id);
+            return element ? (element.value || "---") : "---";
+        }
+
+        function getFullRank() {
+            const rank = getVal('currentRank');
+            const lp = getVal('currentLP');
+            const highTiers = ['Master', 'Grandmaster', 'Challenger', 'Unranked'];
+            
+            if (highTiers.includes(rank)) {
+                return `${rank} ${lp}LP`;
+            } else {
+                const division = getVal('currentDivision');
+                return `${rank} ${division} ${lp}LP`;
+            }
+        }
+
+        function generateReportText() {
+            const result = getMatchResult();
+            return `リーグ・オブ・レジェンド：ランク学習レポート
+
+1. 基本情報
+報告日： ${getVal('reportDate')}
+現在のランク/LP： ${getFullRank()}
+今回の勝敗： ${result}
+主に使用したチャンピオン： ${getVal('champions')}
+
+2. 数値・スタッツの振り返り
+| 項目 | 平均値 / 内容 | 自己評価 (1~5) |
+| :--- | :--- | :--- |
+| CS / 分 | ${getVal('stat_cs_content')} | ${getVal('stat_cs_score')} |
+| KDA | ${getVal('stat_kda_content')} | ${getVal('stat_kda_score')} |
+| 視界スコア | ${getVal('stat_vision_content')} | ${getVal('stat_vision_score')} |
+| キル関与率 | ${getVal('stat_kp_content')} | ${getVal('stat_kp_score')} |
+【コーチへのメモ】
+${getVal('stat_memo')}
+
+3. 目標と達成度
+目標：${getVal('goal_setting')}
+達成度・手応え：
+${getVal('goal_reflection')}
+できたこと：${getVal('goal_good')}
+できなかったこと：${getVal('goal_bad')}
+
+4. 試合内容の深掘り
+試合時間：${getVal('match_url')}
+良かったプレイ：
+${getVal('match_good')}
+改善すべきプレイ：
+${getVal('match_bad')}
+
+5. メンタル・環境
+| 項目 | 内容 | 評価 (1~5) |
+| :--- | :--- | :--- |
+| 集中力 | ${getVal('mental_focus')} | ${getVal('mental_focus_score')} |
+| メンタル管理 | ${getVal('mental_tilt')} | ${getVal('mental_tilt_score')} |
+| 環境 | ${getVal('mental_env')} | ${getVal('mental_env_score')} |
+
+6. 次回への課題
+次の課題：${getVal('next_task')}
+コーチに聞きたいこと：
+${getVal('next_question')}
+`;
+        }
+
+        function copyToClipboard() {
+            const text = document.getElementById('livePreview').value;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => showToast()).catch(err => fallbackCopy(text));
+            } else {
+                fallbackCopy(text);
+            }
+        }
+        
+        function fallbackCopy(text) {
+            try {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-9999px";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+                if (successful) showToast();
+            } catch (err) {}
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-message');
+            if (msg) toastMsg.innerHTML = `<i class="fas fa-check-circle mr-2"></i> ${msg}`;
+            else toastMsg.innerHTML = `<i class="fas fa-check-circle mr-2"></i> クリップボードにコピーしました！`;
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
